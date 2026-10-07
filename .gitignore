@@ -1,0 +1,16 @@
+# The game: bring your own copy (see README.md). Never commit it. (PAL only right now)
+game/
+
+# Lifted from the game, so it is game code: generated on your machine only.
+src/recomp/
+
+# Pipeline stage outputs and the build.
+.pipeline/
+build/
+
+*.log
+*.d3dcap
+__pycache__/
+
+# A local mod folder for testing (RECOMP_MODS_DIR); mods are the player's own.
+mods/
