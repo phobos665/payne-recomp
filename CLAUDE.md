@@ -66,12 +66,34 @@ Checked 7 Oct 2026 with scripted input (`RECOMP_INPUT_SEQ`):
 - 60 fps: every frame on one vblank, about 6 ms of work a frame in the level.
 - Quick save writes `UDATA/54540003/<id>/SaveData.Mps` and costs one hitch
   (one frame of 4+ vblanks).
-- One driven run ended in a clean `ExitProcess(0)` about 35 s in. It is not yet
-  known whether a scripted press chose a quit option or the game left on its
-  own. Check this first if the game closes during play.
+- Walking, turning, firing (ammo counts down) and bullet time (the hourglass
+  drains) respond in the alley.
+- Two driven runs ended in `ExitProcess(0)`, both from the window procedure
+  (`shadow_wndproc` -> `xbox_HostExit`): the window was closed, not the game
+  quitting. Both coincided with the window being in use on the desktop.
 
-Not checked: moving, shooting, bullet time, loading a save, later levels,
-sound by ear.
+- The graphic novel and the in-engine cutscenes draw (7 Oct, evening), on
+  toolkit branch `fix/ff-material-source`, which this repo now pins. Both
+  were toolkit bugs:
+  - Novel pages were black: each panel has a black cover quad faded by vertex
+    alpha under lighting (0x30 over a revealed panel, 0xFF over one still to
+    come). The toolkit ignored `D3DRS_*MATERIALSOURCE` and lit from the
+    material, alpha 1, so every cover was opaque. Now forwarded (Xbox states
+    110-113) and used.
+  - In-engine cutscenes were black: the letterbox bars are two rectangle
+    Clears at the end of each frame, and toolkit `main` dropped the rectangles
+    and cleared the whole screen. Fixed by three commits cherry-picked from
+    `exp/macOs-support` (d485011, 3e38dbe, 997467d).
+  Found by capturing a frame (`RECOMP_D3D8_CAPTURE`) and replaying it with
+  `--draws N`; a capture taken before a fix keeps the old state in its
+  snapshot, so re-capture after one.
+- The player reported novel panels "distorted" once; not reproduced here.
+
+Not checked: a level played through, loading a save, later levels, sound by
+ear, and the material-source change against other titles.
+
+**Pin:** `fix/ff-material-source` is toolkit `main` plus the four commits
+above. Move the pin back to toolkit `main` once they are merged there.
 
 ## Running it unattended
 
@@ -79,8 +101,15 @@ The toolkit's switches apply (`xboxrecomp/CLAUDE.md`). Two specific to here:
 
 - **Saves are not isolated by `RECOMP_SAVE_DIR`.** The game saves through
   `\Device\Harddisk0\Partition1\UDATA`, which the toolkit maps into the game
-  folder. Move `game/UDATA/54540003` (the player's saves) aside before a
-  scripted run and put it back afterwards.
+  folder. Copy `game/UDATA` and `game/TDATA` somewhere **outside** `game/`
+  before a scripted run and copy them back afterwards. Do not rename them
+  inside `game/`: that folder is the game's E: drive, and extra entries there
+  are visible to it. And `game` is a junction, so `..` from inside it is not
+  this repository; use absolute paths.
+- **Only one copy at a time.** The game opens `english/x_data.ras` with no
+  sharing, so a second copy (a test run while someone plays) fails to open it,
+  throws `ArchiveNotFound` and faults at start-up in `sub_000E9B80` writing
+  0xFFFFFFF8. Check `tasklist` for `payne_recomp.exe` first.
 - A script that reaches the level: `5000:start,10000:a,15000:start,20000:a`.
   The press at 15 s opens the pause menu, and A at 20 s quick-saves and returns
   to play. Start pressed in the level pauses, and the pause menu's first item is

@@ -73,10 +73,12 @@ Checked so far, with scripted input:
 
 - start-up, the intro and the main menu
 - the first level (the alley) with its HUD, holding 60 fps
+- walking, shooting and bullet time respond
 - quick save, which writes a save and costs one short hitch
+- the graphic novel pages and the in-engine cutscenes
 
-Not checked yet: playing through a level (moving, shooting, bullet time),
-loading a save, later levels, and sound by ear.
+Not checked yet: playing a level through, loading a save, later levels, and
+sound by ear.
 
 ## Other versions
 
