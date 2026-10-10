@@ -104,10 +104,16 @@ Toolkit bugs this game found, all fixed on the pinned branch:
   toolkit fed the host only when the game called DirectSound and threw away
   any stretch over 100 ms: up to 640 ms lost in every five seconds of the
   intro movie, the rest crackling. A toolkit service thread now feeds buffers
-  and streams on its own clock. The game's other sound is DirectSound streams
-  (Xbox ADPCM: music, the novel's narration, mono at 44.1 kHz, and a 22,100 Hz
-  one), fed by event; in the intro cutscene and opening novel none of them
-  lost any sound before or after the change (`0 skipped unsent`).
+  and streams on its own clock.
+- **Graphic novel narration was clipped noise (issue #3, 10 Oct).** The game
+  makes a DirectSound stream for each line of narration, in that line's own
+  format (`sounds/story/part*`: mostly stereo 44.1 kHz Xbox ADPCM, some mono),
+  and the heap puts them at the same few addresses. The toolkit kept the
+  first stream's format for an address, so stereo lines were decoded as mono.
+  Found by decoding the disc's WAVs with a copy of the toolkit's decoder: the
+  captured noise was `P1L0a_001.wav` decoded as mono, block for block. Every
+  sound on the disc is Xbox ADPCM (tag 0x69), so that comparison works for
+  any of them. Confirmed by ear on New Game.
 
 Found with a frame capture (`RECOMP_D3D8_CAPTURE`) and the replay tool:
 `--list-draws`, then `--no-scene --draws N` to find the draw that paints a
@@ -120,8 +126,8 @@ movies, loading a save, sound by ear.
 
 **Pin:** toolkit `main` at `b775a86` (10 Oct 2026), which has everything
 above (merged as #56) and the launcher's single Widescreen switch (#57),
-except the movie sound fix, which is on toolkit branch
-`fix/dsound-ring-buffer-audio` (`afb73c7`) and pinned from this repository's
+except the sound fixes, which are on toolkit branch
+`fix/dsound-ring-buffer-audio` (`4a39c75`) and pinned from this repository's
 `fix/issue-3-audio` branch for review. Once it is merged, pin toolkit `main`
 again. Keep the pin on a commit of toolkit `main`: a feature branch's commits
 go away when it is squash-merged.
