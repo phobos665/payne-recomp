@@ -68,14 +68,19 @@ background:
 - The intro movie plays, then the menu. New Game goes through the difficulty
   screen, the graphic novel, the in-engine "New Jersey, Three Years Ago"
   cutscene and into the Prologue, with its auto save.
-- Through the level select (below): the tutorial, the Prologue, Part I
-  chapter 1 (Roscoe Street Station) and chapter 6 (the fire escapes), and
-  Part II's "The Nightmare" load and play. Walking, turning, firing (ammo
-  counts down, then the Lead Pipe), bullet time and dying all respond.
-- No unresolved indirect calls in those runs. Two were found on the way and
-  are in `config/seeds.json`: `0x00171740` (Parts I and III) and `0x00246970`
-  (the Prologue). A skipped indirect call returns 0 and says so only in the
-  log (`[ICALL] unresolved call target`), so grep each new level's log.
+- Through the level select (below), at least one level of every part loads
+  and plays, each with its graphic novel page and opening cutscene: the
+  tutorial, the Prologue, Part I chapters 1 (Roscoe Street) and 6 (the fire
+  escapes), Part II's Nightmare, Hotel, Docks, Restaurant and Manor, and the
+  first levels of Part IIIa (the Drug Trip) and IIIb. Walking, turning,
+  firing (ammo counts down, then the Lead Pipe), bullet time, taking damage,
+  killing and dying all respond.
+- No unresolved indirect calls in those runs. Three were found on the way
+  and are in `config/seeds.json`: `0x00171740` (Parts I and III),
+  `0x00246970` (the Prologue) and `0x00072E90` (Part IIIb). A skipped
+  indirect call returns 0 and says so only in the log (`[ICALL] unresolved
+  call target`), so grep each new level's log; ninety seconds of one level is
+  not the whole level.
 - 60 fps in the levels.
 
 Toolkit bugs this game found, all fixed on the pinned branch:
@@ -101,18 +106,49 @@ region. The game never clears colour, so without `--no-scene` every partial
 replay shows the previous frame and looks complete. Replay at the capture's
 own `RECOMP_RES_SCALE`.
 
-Not checked: Part II beyond its first level, Part III, the credits and
-attract movies, loading a save, sound by ear. Widescreen is not done: the
-game has no 16:9 mode (its `CreateDevice` flags are 0 and it never asks for
-the video flags), its world is fixed-function with one viewport per portal,
-and its camera's FOV is horizontal (75 degrees, set through `sub_000D5DA0`),
-with the vertical extent taken from the 640x480 rectangle.
+Not checked: a level played through to its end, the credits and attract
+movies, loading a save, sound by ear.
 
 **Pin:** toolkit branch `feat/maxpayne-relift`: `main` (`ca49951`) plus the
-material-source fix and the three fixes above, and `--no-scene` for the replay
-tool. They change what every title draws, so they need the toolkit's Windows
-regression (TimeSplitters 2, BLiNX) before `main`. Move the pin to `main` once
-they are merged there.
+material-source fix, the three fixes above, the widescreen hooks below and
+some diagnostics. The fixes change what every title draws, so they need the
+toolkit's Windows regression (TimeSplitters 2, BLiNX) before `main`. Move the
+pin to `main` once they are merged there.
+
+## Widescreen
+
+On with `widescreen = 1` and `hor_plus = 0.75` in the settings file
+(`RECOMP_WIDESCREEN=1 RECOMP_HOR_PLUS=0.75`); the launcher's Widescreen and
+Wide camera. Both are needed: the first alone stretches a 4:3 picture.
+
+The game has no 16:9 mode: `CreateDevice` is given no widescreen flag and the
+game never asks for the video flags. Its world is fixed-function, drawn
+through one viewport for each portal, and its camera keeps a horizontal field
+of view (75 degrees) and takes the vertical from the 640x480 rectangle it
+also draws into. So (`src/recomp_manual.c`, "the widescreen camera"):
+
+- `sub_000D5DA0`, the camera's set-field-of-view, is wrapped: the field of
+  view is widened by 4/3 in the tangent. Culling, portals and projections all
+  follow. The picture then grows both ways, and the toolkit crops the rows
+  that added (`xbox_D3D8SetVerticalZoom`).
+- The 2D -- HUD, menus, graphic novel, text -- is quads at the camera's mid
+  depth under the world's own projection, issued through the engine's general
+  batch flush. `mp_is_2d_layer` tells the renderer which draws those are
+  (`xbox_D3D8SetScreenSpaceTest`); otherwise the HUD is cropped with the
+  world.
+- Frames with nothing in perspective are shown at 4:3 between bars
+  (`xbox_D3D8SetWideFramesAuto`): menus, loading screens, movies.
+
+Checked in the Prologue, the tutorial, Roscoe Street and the Docks: people and
+rooms in proportion, portals joined, HUD whole, cutscene letterbox bars across
+the picture. To look at a run's frame dumps as shown, resize them to 16:9: the
+dump is the 4:3 scene before the stretch.
+
+Open: the HUD sits in the centre 4:3 block rather than at the screen's edges;
+the graphic novel is shown wide with its panels at 4:3 in the middle (some
+draw in it counts as perspective; not looked into); a field of view the game
+sets some other way than `sub_000D5DA0` would not be widened -- the sniper
+scope and the Drug Trip's distortion have not been looked at in widescreen.
 
 ## Getting to any level
 

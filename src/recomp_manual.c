@@ -105,6 +105,138 @@ extern uint32_t g_xbox_code_hi;
  * means this title was lifted before the macros published it. */
 /* g_icall_dispatch_form: recomp_cpu.h. */
 
+/* ── Max Payne: the widescreen camera ──────────────────────── */
+
+/*
+ * Max Payne has no 16:9 mode: CreateDevice is given no widescreen flag and
+ * the game never asks the console for its video flags. Its world is
+ * fixed-function, drawn through one viewport for each portal, so the
+ * toolkit's register Hor+ has nothing to scale -- and widening a finished
+ * projection would leave the game culling against the old 4:3 view anyway.
+ *
+ * The camera (the object whose default 75 degrees is written at 0x000D90FC)
+ * holds a HORIZONTAL field of view in radians at +0x11C. Eight routines
+ * turn it into the view themselves -- tan(fov / 2) across, and that times
+ * the height over the width of the camera's pixel rectangle (+0x1D0..+0x1DC,
+ * 640x480 or a portal's part of it) down -- so there is no aspect to change:
+ * the rectangle is also where the portal is drawn.
+ *
+ * So the field of view is widened where it is set, sub_000D5DA0(this, fov)
+ * (thiscall; it clamps to 0..3.124 rad, stores it and marks the camera
+ * changed), by the Hor+ factor in the tangent. Everything downstream -- the
+ * projection, the culling, the portal rectangles -- follows, and the picture
+ * grows by that much both ways. The renderer then crops the rows that added
+ * (xbox_D3D8SetVerticalZoom), which leaves the vertical view what it was.
+ *
+ * Frames with nothing in perspective -- the menus, the graphic novel, the
+ * movies, loading -- are shown at 4:3 between bars
+ * (xbox_D3D8SetWideFramesAuto): none of them is laid out for 16:9.
+ *
+ * xboxrecomp src/d3d/d3d8_xbox.h:
+ */
+#include <math.h>
+extern float xbox_D3D8ClaimHorPlus(void);
+extern void  xbox_D3D8SetVerticalZoom(float zoom);
+extern void  xbox_D3D8SetWideFramesAuto(int on);
+typedef int (*MpScreenSpaceTest)(uint32_t handle, const void *vertices, unsigned stride,
+                                 unsigned count, const float *world, const float *view,
+                                 const float *projection, float *x_lo, float *x_hi);
+extern void  xbox_D3D8SetScreenSpaceTest(MpScreenSpaceTest test);
+
+/*
+ * The game's 2D -- the HUD, the menus, the graphic novel, text -- is not
+ * drawn in screen coordinates. It is quads placed in front of the camera
+ * that draws the world, all at one depth: halfway between its near and far
+ * planes (5000.5 for the usual 1 and 10000), sized from the same tan(fov / 2)
+ * so they come out where the layout wants them whatever the field of view.
+ * They reach the renderer through the engine's ordinary batch flush
+ * (0x002F5308 -> 0x002F458F -> 0x002E77EA), as the world's draws do, so
+ * nothing about the call says which they are. The geometry does: every
+ * vertex is at that depth, and nothing in a level is anywhere near it (the
+ * fog is solid by 150).
+ *
+ * The renderer has to know, because in widescreen the world is cropped top
+ * and bottom and the 2D must not be. Called for each fixed-function draw
+ * (xbox_D3D8SetScreenSpaceTest); a world draw is turned away at its first
+ * vertex.
+ */
+#define MP_SCREEN_WIDTH 640.0f
+
+static int mp_is_2d_layer(uint32_t handle, const void *vertices, unsigned stride,
+                          unsigned count, const float *w, const float *v, const float *p,
+                          float *x_lo, float *x_hi)
+{
+    const unsigned char *b = (const unsigned char *)vertices;
+    float a = p[10], c = p[14], mid, lo = 3.4e38f, hi = -3.4e38f;
+    unsigned i;
+
+    (void)handle;
+    /* A perspective projection (w = z), with its planes read back from it:
+     * m22 = far / (far - near), m32 = -near * m22. */
+    if (p[11] != 1.0f || p[15] != 0.0f || !(a > 1.0f) || !(c < 0.0f) || stride < 12u ||
+        count > 4096u)
+        return 0;
+    mid = 0.5f * (-c / a + -c / (a - 1.0f));
+    for (i = 0; i < count; i++) {
+        float m[3], wx, wy, wz, vx, vz, x;
+
+        memcpy(m, b + (size_t)i * stride, sizeof m);
+        wx = m[0] * w[0] + m[1] * w[4] + m[2] * w[8]  + w[12];
+        wy = m[0] * w[1] + m[1] * w[5] + m[2] * w[9]  + w[13];
+        wz = m[0] * w[2] + m[1] * w[6] + m[2] * w[10] + w[14];
+        vz = wx * v[2] + wy * v[6] + wz * v[10] + v[14];
+        /* The far plane read back from a float is good to a part in a
+         * thousand; the world is a factor of thirty away. */
+        if (fabsf(vz - mid) > mid * 0.02f)
+            return 0;
+        vx = wx * v[0] + wy * v[4] + wz * v[8] + v[12];
+        x = ((vx * p[0] + vz * p[8]) / vz * 0.5f + 0.5f) * MP_SCREEN_WIDTH;
+        if (x < lo) lo = x;
+        if (x > hi) hi = x;
+    }
+    *x_lo = lo;
+    *x_hi = hi;
+    return 1;
+}
+
+/* What tan(fov / 2) is multiplied by: 1 when no wider view is wanted, 4/3
+ * for the usual Hor+ 0.75. Claiming it stops the toolkit scaling a vertex
+ * constant register as well. */
+static float mp_camera_widen(void)
+{
+    static float widen;
+
+    if (widen == 0.0f) {
+        float factor = xbox_D3D8ClaimHorPlus();
+
+        widen = (factor > 0.0f && factor != 1.0f) ? 1.0f / factor : 1.0f;
+        if (widen != 1.0f) {
+            xbox_D3D8SetVerticalZoom(widen);
+            xbox_D3D8SetWideFramesAuto(1);
+            xbox_D3D8SetScreenSpaceTest(mp_is_2d_layer);
+            fprintf(stderr, "[MP] camera: horizontal field of view widened by %.4g in "
+                    "the tangent\n", (double)widen);
+        }
+    }
+    return widen;
+}
+
+extern void sub_000D5DA0_gen(void);
+void sub_000D5DA0(void)
+{
+    float widen = mp_camera_widen();
+
+    if (widen != 1.0f) {
+        /* The argument, above the return address. */
+        volatile float *fov = (volatile float *)((uintptr_t)(g_esp + 4u) + g_xbox_mem_offset);
+        float f = *fov;
+
+        if (f > 0.0f && f < 3.0f)
+            *fov = 2.0f * atanf(tanf(f * 0.5f) * widen);
+    }
+    sub_000D5DA0_gen();
+}
+
 /* ── Manual function overrides ─────────────────────────────── */
 
 /*
