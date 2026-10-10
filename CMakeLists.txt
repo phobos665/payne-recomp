@@ -74,6 +74,16 @@ if(MSVC)
     string(REGEX REPLACE "/RTC[1csu]+" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
 endif()
 
+# Max Payne has no 16:9 mode (CreateDevice is given no widescreen flag and the
+# game never asks for the video flags), so widescreen here means widening its
+# camera. No register: the world is fixed-function, and the game widens its
+# own field of view (src/recomp_manual.c, "the widescreen camera"). Said here
+# as well as claimed in code so the launcher, which runs none of the game's
+# code, describes its one Widescreen switch correctly.
+if(COMMAND recomp_title_widescreen)
+    recomp_title_widescreen(HOR_PLUS)
+endif()
+
 # The settings window: video options, input bindings, then starts the game.
 if(COMMAND recomp_add_launcher)
     recomp_add_launcher(${PROJECT_NAME}_launcher ${PROJECT_NAME}.exe)

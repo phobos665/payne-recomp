@@ -109,17 +109,20 @@ own `RECOMP_RES_SCALE`.
 Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
-**Pin:** toolkit branch `feat/maxpayne-relift`: `main` (`ca49951`) plus the
-material-source fix, the three fixes above, the widescreen hooks below and
-some diagnostics. The fixes change what every title draws, so they need the
-toolkit's Windows regression (TimeSplitters 2, BLiNX) before `main`. Move the
-pin to `main` once they are merged there.
+**Pin:** toolkit `main` at `b775a86` (10 Oct 2026), which has everything
+above (merged as #56) and the launcher's single Widescreen switch (#57). Keep
+the pin on a commit of toolkit `main`: a feature branch's commits go away
+when it is squash-merged.
 
 ## Widescreen
 
-On with `widescreen = 1` and `hor_plus = 0.75` in the settings file
-(`RECOMP_WIDESCREEN=1 RECOMP_HOR_PLUS=0.75`); the launcher's Widescreen and
-Wide camera. Both are needed: the first alone stretches a 4:3 picture.
+On with the launcher's one Widescreen switch: `widescreen = 1` in the
+settings file (`RECOMP_WIDESCREEN=1`). The toolkit works out the rest from
+what this project says about the game -- `recomp_title_widescreen(HOR_PLUS)`
+in `CMakeLists.txt`, for the launcher, and the claim the camera code makes at
+run time -- and hands the camera its 0.75. A number in `hor_plus` still
+decides when one is written out: `hor_plus = 0` with widescreen on is the 4:3
+picture stretched.
 
 The game has no 16:9 mode: `CreateDevice` is given no widescreen flag and the
 game never asks for the video flags. Its world is fixed-function, drawn
