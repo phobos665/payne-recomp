@@ -99,6 +99,21 @@ Toolkit bugs this game found, all fixed on the pinned branch:
   picture here; 43 failed texture creations in the opening novel.
 - Earlier (7 Oct): novel panels black (`D3DRS_*MATERIALSOURCE`), and in-engine
   cutscenes black (Clear with rectangles; in toolkit `main` since 9 Oct).
+- **Movie sound broke up (issue #3, 10 Oct).** Bink's sound thread polls its
+  115,712-byte ring every ~20 ms but stops for 140-300 ms at a time, and the
+  toolkit fed the host only when the game called DirectSound and threw away
+  any stretch over 100 ms: up to 640 ms lost in every five seconds of the
+  intro movie, the rest crackling. A toolkit service thread now feeds buffers
+  and streams on its own clock.
+- **Graphic novel narration was clipped noise (issue #3, 10 Oct).** The game
+  makes a DirectSound stream for each line of narration, in that line's own
+  format (`sounds/story/part*`: mostly stereo 44.1 kHz Xbox ADPCM, some mono),
+  and the heap puts them at the same few addresses. The toolkit kept the
+  first stream's format for an address, so stereo lines were decoded as mono.
+  Found by decoding the disc's WAVs with a copy of the toolkit's decoder: the
+  captured noise was `P1L0a_001.wav` decoded as mono, block for block. Every
+  sound on the disc is Xbox ADPCM (tag 0x69), so that comparison works for
+  any of them. Confirmed by ear on New Game.
 
 Found with a frame capture (`RECOMP_D3D8_CAPTURE`) and the replay tool:
 `--list-draws`, then `--no-scene --draws N` to find the draw that paints a
@@ -110,9 +125,12 @@ Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
 **Pin:** toolkit `main` at `b775a86` (10 Oct 2026), which has everything
-above (merged as #56) and the launcher's single Widescreen switch (#57). Keep
-the pin on a commit of toolkit `main`: a feature branch's commits go away
-when it is squash-merged.
+above (merged as #56) and the launcher's single Widescreen switch (#57),
+except the sound fixes, which are on toolkit branch
+`fix/dsound-ring-buffer-audio` (`06cbed8`) and pinned from this repository's
+`fix/issue-3-audio` branch for review. Once it is merged, pin toolkit `main`
+again. Keep the pin on a commit of toolkit `main`: a feature branch's commits
+go away when it is squash-merged.
 
 ## Widescreen
 
@@ -167,6 +185,13 @@ The menus move with the **left stick**, not the d-pad. In a script, leave
 1.5 s between presses, and do not press before about 15 s after launch: an
 earlier press is lost. To Preview Levels: `4000:start,15000:a`, seven
 `lstick_down`, `a`.
+
+That timing is a fast machine's. On a slow laptop the loading screen holds
+for about 100 s before the menu (the script's clock starts at the first pad
+read, during loading), and presses held for the default 200 ms were missed:
+`RECOMP_SKIP_VIDEO=1`, the first press at 115 s and `:400` on every step
+reached the opening novel every time. A press that lands too early is spent
+silently; the frame dumps' file times say when the menu came up.
 
 ## Running it unattended
 
