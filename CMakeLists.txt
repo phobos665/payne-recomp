@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.20)
 # sources in src/recomp/gen/ come from your own copy of the game and are
 # never committed.
 
-project(payne_recomp C)
+project(payne_recomp C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)

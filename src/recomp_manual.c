@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>   /* ptrdiff_t: not in stdlib.h off MSVC */
 #include <stdlib.h>   /* getenv, exit: the spin verdict below */
 #include <string.h>   /* strcmp: RECOMP_ICALL_FATAL */
 
@@ -75,24 +76,22 @@ typedef void (*recomp_func_t)(void);
 
 /* ── Register state (defined in xbox_memory_layout.c) ──────── */
 
-/* These are defined thread-local in xbox_memory_layout.c. Declaring them
- * without the same storage class here does not fail to link -- it silently
- * resolves to different storage, so every read gets 0. That is why the log
- * below reported no call site: not because the guest esp was stale, but
- * because this file was not reading the guest esp at all. */
-#if defined(_MSC_VER)
-#  define RECOMP_MANUAL_TLS __declspec(thread)
-#elif defined(__GNUC__) || defined(__clang__)
-#  define RECOMP_MANUAL_TLS __thread
-#else
-#  define RECOMP_MANUAL_TLS _Thread_local
-#endif
+/* The guest registers (g_eax, g_esp, g_icall_saved_esp, ...) are fields of
+ * one thread-local struct, declared once in recomp_cpu.h, which the lifter
+ * copies into gen/ beside the code it describes. Take them from there; never
+ * redeclare one here. They used to be redeclared by hand, and a declaration
+ * without the thread-local storage class linked and silently read other
+ * storage, so every read got 0 -- which is why the log below once reported
+ * no call site: not because the guest esp was stale, but because this file
+ * was not reading the guest esp at all. The names are macros now, so a
+ * redeclaration no longer compiles. */
+#include "recomp/gen/recomp_cpu.h"
 
-extern RECOMP_MANUAL_TLS uint32_t g_eax;
+/* g_eax: recomp_cpu.h. */
 /* The guest stack pointer. At the moment an indirect call is refused, the
  * caller has already pushed its guest return address, so the top of the
  * guest stack is the call site -- the one thing the old log did not say. */
-extern RECOMP_MANUAL_TLS uint32_t g_esp;
+/* g_esp: recomp_cpu.h. */
 extern ptrdiff_t g_xbox_mem_offset;
 /* The lifted code sections, so a value on the guest stack can be told
  * apart from data when naming the callers of a refused call. */
@@ -101,10 +100,10 @@ extern uint32_t g_xbox_code_hi;
 /* The esp the dispatch macro captured. Not g_esp, which is stale by the time
  * a refused call is reported. Zero when the title's generated header predates
  * this, and the log then says it has no callers rather than inventing them. */
-extern RECOMP_MANUAL_TLS uint32_t g_icall_saved_esp;
+/* g_icall_saved_esp: recomp_cpu.h. */
 /* Which dispatch form was refused: 0 unknown, 1 call, 2 jump. Unknown
  * means this title was lifted before the macros published it. */
-extern RECOMP_MANUAL_TLS uint32_t g_icall_dispatch_form;
+/* g_icall_dispatch_form: recomp_cpu.h. */
 
 /* ── Manual function overrides ─────────────────────────────── */
 
@@ -260,7 +259,6 @@ void recomp_icall_fail_log(uint32_t va)
     RECOMP_DIAG_UNLOCK();
     fflush(stderr);
 }
-
 /* An indirect call whose target is not code: a null or wild function pointer.
  *
  * Skipping these is right -- calling a data address is worse -- but skipping
