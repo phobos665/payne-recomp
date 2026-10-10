@@ -1,4 +1,4 @@
-# payne-recomp — working context
+# payne-recomp ??? working context
 
 Max Payne (Xbox), statically recompiled on the xboxrecomp toolkit, which is the
 submodule in `xboxrecomp/`. This repository exists to make **this one game**
@@ -7,7 +7,7 @@ make every game work. Most of the judgement in this repo is deciding which of
 the two a change belongs in.
 
 Read `xboxrecomp/CLAUDE.md` too. It holds the toolkit's architecture, its debug
-table (`stderr shows` → cause) and its switches. This file does not repeat them.
+table (`stderr shows` ??? cause) and its switches. This file does not repeat them.
 
 ---
 
@@ -127,7 +127,7 @@ movies, loading a save, sound by ear.
 **Pin:** toolkit `main` at `b775a86` (10 Oct 2026), which has everything
 above (merged as #56) and the launcher's single Widescreen switch (#57),
 except the sound fixes, which are on toolkit branch
-`fix/dsound-ring-buffer-audio` (`4a39c75`) and pinned from this repository's
+`fix/dsound-ring-buffer-audio` (`06cbed8`) and pinned from this repository's
 `fix/issue-3-audio` branch for review. Once it is merged, pin toolkit `main`
 again. Keep the pin on a commit of toolkit `main`: a feature branch's commits
 go away when it is squash-merged.
