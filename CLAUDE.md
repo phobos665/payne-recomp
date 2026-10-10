@@ -1,4 +1,4 @@
-# payne-recomp ??? working context
+# payne-recomp — working context
 
 Max Payne (Xbox), statically recompiled on the xboxrecomp toolkit, which is the
 submodule in `xboxrecomp/`. This repository exists to make **this one game**
@@ -7,7 +7,7 @@ make every game work. Most of the judgement in this repo is deciding which of
 the two a change belongs in.
 
 Read `xboxrecomp/CLAUDE.md` too. It holds the toolkit's architecture, its debug
-table (`stderr shows` ??? cause) and its switches. This file does not repeat them.
+table (`stderr shows` → cause) and its switches. This file does not repeat them.
 
 ---
 
