@@ -99,6 +99,15 @@ Toolkit bugs this game found, all fixed on the pinned branch:
   picture here; 43 failed texture creations in the opening novel.
 - Earlier (7 Oct): novel panels black (`D3DRS_*MATERIALSOURCE`), and in-engine
   cutscenes black (Clear with rectangles; in toolkit `main` since 9 Oct).
+- **Movie sound broke up (issue #3, 10 Oct).** Bink's sound thread polls its
+  115,712-byte ring every ~20 ms but stops for 140-300 ms at a time, and the
+  toolkit fed the host only when the game called DirectSound and threw away
+  any stretch over 100 ms: up to 640 ms lost in every five seconds of the
+  intro movie, the rest crackling. A toolkit service thread now feeds buffers
+  and streams on its own clock. The game's other sound is DirectSound streams
+  (Xbox ADPCM: music, the novel's narration, mono at 44.1 kHz, and a 22,100 Hz
+  one), fed by event; in the intro cutscene and opening novel none of them
+  lost any sound before or after the change (`0 skipped unsent`).
 
 Found with a frame capture (`RECOMP_D3D8_CAPTURE`) and the replay tool:
 `--list-draws`, then `--no-scene --draws N` to find the draw that paints a
@@ -110,9 +119,12 @@ Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
 **Pin:** toolkit `main` at `b775a86` (10 Oct 2026), which has everything
-above (merged as #56) and the launcher's single Widescreen switch (#57). Keep
-the pin on a commit of toolkit `main`: a feature branch's commits go away
-when it is squash-merged.
+above (merged as #56) and the launcher's single Widescreen switch (#57),
+except the movie sound fix, which is on toolkit branch
+`fix/dsound-ring-buffer-audio` (`afb73c7`) and pinned from this repository's
+`fix/issue-3-audio` branch for review. Once it is merged, pin toolkit `main`
+again. Keep the pin on a commit of toolkit `main`: a feature branch's commits
+go away when it is squash-merged.
 
 ## Widescreen
 
@@ -167,6 +179,13 @@ The menus move with the **left stick**, not the d-pad. In a script, leave
 1.5 s between presses, and do not press before about 15 s after launch: an
 earlier press is lost. To Preview Levels: `4000:start,15000:a`, seven
 `lstick_down`, `a`.
+
+That timing is a fast machine's. On a slow laptop the loading screen holds
+for about 100 s before the menu (the script's clock starts at the first pad
+read, during loading), and presses held for the default 200 ms were missed:
+`RECOMP_SKIP_VIDEO=1`, the first press at 115 s and `:400` on every step
+reached the opening novel every time. A press that lands too early is spent
+silently; the frame dumps' file times say when the menu came up.
 
 ## Running it unattended
 
