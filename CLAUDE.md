@@ -59,7 +59,42 @@ first pinned to toolkit `main` at `bcccf8c`. The toolkit history worth knowing:
 
 ## State
 
-Relifted on 9-10 Oct 2026 against toolkit `main` of 9 Oct (`ca49951`), with
+**18 Oct 2026: relifted against toolkit `main` at `26c5215` (#69) and built
+on macOS (Apple Silicon, Vulkan on MoltenVK).** `src/main.c` regenerated from
+the current template; `CMakeLists.txt` and `scripts/build.py` made portable
+(Ninja into `build/Release/`, as split2-recomp does). The lift needed no new
+seeds. Checked, muted and in the background, with scripted input:
+
+- **Every level in Preview Levels, all 67**, each in a run of its own: it
+  loads the intended level (the log names its `Levels\<part>\<level>.ai`),
+  then walks, turns, fires and takes hits for 48 s. No unresolved indirect
+  calls and no faults in any level. 60 fps in nearly all; Rooftops and
+  Alleys-2/-3 and Docks A-2 dipped to 33-46 fps with four copies running at
+  once, not rechecked alone.
+- **Sound.** The intro movie plays through with sound; New Game's opening
+  cutscene and novel narration measure as speech (zero-crossing rate 1-10%,
+  peaks -15 to -27 dBFS), not the clipped noise of issue #3, with a narration
+  stream recreated stereo at the address a mono one had. No voice ran dry in
+  any level (`RECOMP_AUDIO_METER=1`). The "voices reset with sound queued"
+  count is the game stopping its own buffers; it is 0 in the menus.
+- **Start-up crashes, found and half fixed.** About one start-up in ten died
+  before the menu, in two ways:
+  - *Fixed, toolkit `fix/heap-alloc-lock` (`e02bcce`).* The toolkit's heap
+    had no lock; a host thread's blocks and the main thread's 1 MB
+    reservation all got 0x00F80000, and the game opened `D:\language.tx`,
+    threw `FileNotFound` and faulted. 5 of 67 runs before, 0 of 30 since.
+  - *Open.* `sub_001DEB90`, loading the particle database, calls through a
+    null object in a list at `0x001DED16` and faults: 2 of 20 boots with the
+    fix, 2 of 67 before. Only the main guest thread exists then, and the log
+    up to the fault matches a good run line for line, so something on a
+    host thread changes guest state. Restarting gets past it.
+
+On macOS the game opens files without share modes, so test runs can go in
+parallel, each against its own mirror of the game folder. The input scripts
+of three level runs lost a press in the menus under that load; the `.ai`
+line in the log is how to tell a run that never left them.
+
+Before that, relifted on 9-10 Oct 2026 against toolkit `main` of 9 Oct (`ca49951`), with
 `src/main.c` and `src/recomp_manual.c` regenerated from the toolkit's current
 templates (the older copies do not compile against its register model).
 Checked with scripted input (`RECOMP_INPUT_SEQ`), every run muted and in the
@@ -124,13 +159,11 @@ own `RECOMP_RES_SCALE`.
 Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
-**Pin:** toolkit `main` at `b775a86` (10 Oct 2026), which has everything
-above (merged as #56) and the launcher's single Widescreen switch (#57),
-except the sound fixes, which are on toolkit branch
-`fix/dsound-ring-buffer-audio` (`06cbed8`) and pinned from this repository's
-`fix/issue-3-audio` branch for review. Once it is merged, pin toolkit `main`
-again. Keep the pin on a commit of toolkit `main`: a feature branch's commits
-go away when it is squash-merged.
+**Pin:** toolkit branch `fix/heap-alloc-lock` (`e02bcce`), which is toolkit
+`main` at `26c5215` (18 Oct 2026; the sound fixes above merged as #58) plus
+the allocator lock. Once that is merged, pin toolkit `main` again. Keep the
+pin on a commit of toolkit `main`: a feature branch's commits go away when it
+is squash-merged.
 
 ## Widescreen
 
@@ -181,6 +214,14 @@ Intro, Part Ia, Ib, II, IIIa and IIIb and under each every level. Developer
 mode also draws a grey bar two pixels wide down the right edge of the screen;
 that is the game's, not a rendering fault.
 
+Preview Levels holds 67 levels: Intro 2, Part Ia 14 (Subway, Hotel,
+Tenements A), Ib 12 (Tenement Buildings B, Rooftops and Alleys, Nightclub,
+Nightclub Showdown), II 14 (Nightmare to Manor), IIIa 14 (Drug Trip to
+Garage), IIIb 11 (Asgard Building, Aesir Corp, Nicole Horne's Penthouse).
+B backs out of a list with its cursor kept. To load one: Preview Levels,
+then `lstick_down` once per part below Intro, `a`, `lstick_down` once per
+level, `a`.
+
 The menus move with the **left stick**, not the d-pad. In a script, leave
 1.5 s between presses, and do not press before about 15 s after launch: an
 earlier press is lost. To Preview Levels: `4000:start,15000:a`, seven
@@ -208,8 +249,9 @@ The toolkit's switches apply (`xboxrecomp/CLAUDE.md`). Specific to here:
   folders, copies of the loose files and of `TDATA`, and no `UDATA`. Never
   delete through a junction, and note `game` here is one: `..` from inside it
   is not this repository.
-- **Only one copy at a time.** The game opens `english/x_data.ras` with no
-  sharing, so a second copy (a test run while someone plays) fails to open it,
+- **Only one copy at a time on Windows.** (macOS ignores share modes, so
+  there each run needs only its own mirror.) The game opens
+  `english/x_data.ras` with no sharing, so a second copy (a test run while someone plays) fails to open it,
   throws `ArchiveNotFound` and faults at start-up in `sub_000E9B80` writing
   0xFFFFFFF8. Check `tasklist` for `payne_recomp.exe` first.
 - An exit with `ExitProcess(0)` from `shadow_wndproc` -> `xbox_HostExit` is
