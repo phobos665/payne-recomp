@@ -9,6 +9,11 @@ Status: every level loads and plays (checked on an Apple Silicon Mac; Windows
 was last checked on an older toolkit, through the first levels of each part).
 It has not been played through from start to finish yet; see [Status](#status).
 
+Proof of gameplay on macOS (Testing):
+
+https://www.youtube.com/watch?v=cY0Gk71TAGI
+
+
 ## What you need
 
 - Windows 10 or 11, 64-bit, **or** a Mac with Apple Silicon
