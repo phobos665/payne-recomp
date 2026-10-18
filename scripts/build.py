@@ -100,18 +100,33 @@ def main() -> int:
     if args.no_build:
         return 0
 
-    if not (BUILD / "CMakeCache.txt").is_file():
-        configure = ["cmake", "-S", ROOT, "-B", BUILD]
-        if not os.environ.get("CMAKE_GENERATOR"):
+    if os.name == "nt":
+        build = BUILD
+        exe = BUILD / args.config / "payne_recomp.exe"
+    else:
+        # Ninja is single-configuration, so each configuration gets a folder
+        # of its own: the executable lands in build/<config>/ as Visual
+        # Studio's does, and the game paths in src/main.c hold on both.
+        build = BUILD / args.config
+        exe = build / "payne_recomp"
+
+    if not (build / "CMakeCache.txt").is_file():
+        configure = ["cmake", "-S", ROOT, "-B", build]
+        if os.name != "nt":
+            if not os.environ.get("CMAKE_GENERATOR"):
+                configure += ["-G", "Ninja"]
+            configure += [f"-DCMAKE_BUILD_TYPE={args.config}"]
+        elif not os.environ.get("CMAKE_GENERATOR"):
             configure += ["-A", "x64"]
         if not run(configure):
             return fail("cmake configure failed")
-    if not run(["cmake", "--build", BUILD, "--config", args.config]):
+    if not run(["cmake", "--build", build, "--config", args.config]):
         return fail("the build failed")
 
-    exe = BUILD / args.config / "payne_recomp.exe"
     print(f"\nbuilt {exe}")
-    print(f"settings window: {exe.with_name('payne_recomp_launcher.exe')}")
+    launcher = exe.with_name("payne_recomp_launcher" + (".exe" if os.name == "nt" else ""))
+    if launcher.is_file():
+        print(f"settings window: {launcher}")
     return 0
 
 

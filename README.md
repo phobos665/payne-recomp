@@ -5,16 +5,20 @@ of the game**: the game's code is translated to C on your machine and compiled
 against the [xboxrecomp](https://github.com/phobos665/xboxrecomp) toolkit. No
 game code or data is in this repository.
 
-Status: early. The game boots, plays its intro and reaches the first level (the
-alley) at 60 fps, and quick save works. It has not been played through yet; see
-[Status](#status).
+Status: every level loads and plays (checked on an Apple Silicon Mac; Windows
+was last checked on an older toolkit, through the first levels of each part).
+It has not been played through from start to finish yet; see [Status](#status).
 
 ## What you need
 
-- Windows 10 or 11, 64-bit
-- Visual Studio 2022 (or 2019) with the **Desktop development with C++** workload
+- Windows 10 or 11, 64-bit, **or** a Mac with Apple Silicon
+- On Windows: Visual Studio 2022 (or 2019) with the **Desktop development with
+  C++** workload
+- On macOS: the Xcode command line tools, Homebrew's `cmake` and `ninja`, and
+  the [Vulkan SDK](https://vulkan.lunarg.com/) (MoltenVK, the loader and DXC)
 - [CMake](https://cmake.org/download/) 3.20 or newer, on PATH
 - Python 3.10 or newer, with `capstone`: `py -3 -m pip install capstone`
+  (`python3 -m pip install capstone` on macOS)
 - Git
 - **Max Payne, PAL release**, extracted from your disc. The build checks
   `default.xbe` and warns if it is a different version; see
@@ -42,7 +46,15 @@ build\Release\payne_recomp.exe             the game
 build\Release\payne_recomp_launcher.exe    settings window, then starts the game
 ```
 
-If you cloned without `--recursive`: `git submodule update --init --recursive`.
+On macOS run `python3 scripts/build.py`; it builds with Ninja into
+`build/Release/payne_recomp` and `build/Release/payne_recomp_launcher`.
+
+If you cloned without `--recursive`: `git submodule update --init`, then in
+`xboxrecomp`, `git submodule update --init third_party/SDL third_party/volk
+third_party/Vulkan-Headers third_party/VulkanMemoryAllocator
+third_party/libsamplerate third_party/miniupnp`. A fully recursive update
+works too, but it also fetches several gigabytes of emulator firmware that the
+build never uses.
 
 ## Play
 
@@ -71,13 +83,16 @@ Input tab.
 
 Checked so far, with scripted input:
 
-- start-up, the intro and the main menu
-- the first level (the alley) with its HUD, holding 60 fps
-- walking, shooting and bullet time respond
+- start-up, the intro movie with its sound, and the main menu
+- New Game: the opening cutscene and graphic novel, with narration
+- all 67 levels, each loaded through the game's own level select and played
+  for a minute: HUD, walking, shooting and taking damage, at 60 fps
 - quick save, which writes a save and costs one short hitch
-- the graphic novel pages and the in-engine cutscenes
 
-Not checked yet: playing a level through, loading a save, later levels, and
+Known problem: about one start in ten stops with a crash before the main
+menu (on macOS; not yet looked for on Windows). Starting again gets past it.
+
+Not checked yet: playing a level through to its end, loading a save, and
 sound by ear.
 
 ## Other versions
