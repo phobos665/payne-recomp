@@ -10,8 +10,8 @@ holds no game code or data.
 
 ## Status
 
-**Playable.** Last checked on 21 Oct 2026 against xboxrecomp `main` (`9bf3ec2`)
-plus two fixes, on an Apple Silicon Mac, with scripted input:
+**Playable.** Last checked on 21 Oct 2026 against xboxrecomp `main` (`b634e49`),
+on an Apple Silicon Mac, with scripted input:
 
 | | |
 | --- | --- |

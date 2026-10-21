@@ -75,7 +75,7 @@ tutorial, and all 67 Preview Levels, 48 s of play each, 4 at a time.
   `GlobalMemoryStatusEx` was a TODO that filled nothing in, so the figure was
   uninitialised stack: #76's diagnostic hook in `kernel_bridge.c` changed
   what was left there, and 1 boot in 10 became 10 in 10. Fixed in toolkit
-  `fix/mm-query-statistics` (`1d469e9`): the console reports half its 64 MB
+  #77 (`b634e49`): the console reports half its 64 MB
   free, always. Found by bisecting #71-#76 (`7bf9c18` 0/4 crashes, `4f70cc6`
   0/4, `829bba4` 4/4; `829bba4` with only `kernel_bridge.c` reverted 0/4).
 - After the free-memory fix: 68 of 69 runs clean. Every level loaded its own `.ai`, no
@@ -92,8 +92,7 @@ tutorial, and all 67 Preview Levels, 48 s of play each, 4 at a time.
   `catch (...)` resumes at `0x0003CEFD`, which destroys a local and returns
   false: the game gives up on that object. With no catch support the throw
   returned into the next function, `sub_00238830`, which copied a garbage
-  range and faulted at `0x74000000`. Toolkit `feat/uplift-2026-10-21`
-  (`ffb0119`) catches C++ throws from the title's own EH tables
+  range and faulted at `0x74000000`. Toolkit #77 (`b634e49`) catches C++ throws from the title's own EH tables
   (`xboxrecomp/docs/technical/cpp-exceptions.md`, "Catching"); a caught
   throw prints `[CXX] caught ...`. The level is 4 of 4 clean since, with
   the exception caught up to 16 times a run, and a full pass on that build
@@ -199,10 +198,9 @@ own `RECOMP_RES_SCALE`.
 Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
-**Pin:** toolkit branch `feat/uplift-2026-10-21` (`ffb0119`), which is
-toolkit `main` at `9bf3ec2` (21 Oct 2026; the allocator lock merged as #70)
-plus the free-memory fix and C++ catch support above. Once that is merged,
-pin toolkit `main` again. Keep the
+**Pin:** toolkit `main` at `b634e49` (21 Oct 2026), which is the free-memory
+fix and C++ catch support above merged as #77, on top of `9bf3ec2`. Its tree
+is identical to the branch commit `ffb0119` the passes above ran on. Keep the
 pin on a commit of toolkit `main`: a feature branch's commits go away when it
 is squash-merged.
 
