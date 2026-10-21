@@ -59,6 +59,39 @@ first pinned to toolkit `main` at `bcccf8c`. The toolkit history worth knowing:
 
 ## State
 
+**21 Oct 2026: relifted against toolkit `main` at `9bf3ec2`** (#70-#76: the
+heap lock merged, the XGRA audio work, Turok's D3D sync points, PES5's
+narrow multiply). No new seeds; `main.c` and `recomp_manual.c` unchanged.
+Regression with a scratch harness (one APFS-clone mirror per run, muted,
+background, `RECOMP_INPUT_SEQ`): boot and intro movie, New Game to the
+tutorial, and all 67 Preview Levels, 48 s of play each, 4 at a time.
+
+- **The start-up crash below is fixed, and it was never a host-thread race.**
+  On `9bf3ec2` it hit every level load. `sub_001DD9F0`, the particle
+  factory, creates nothing unless `sub_000F6F70` says more than 3.5 MB is
+  free (XAPI `GlobalMemoryStatus` at `0x002DA02C`, i.e. `MmQueryStatistics`).
+  The loader stores the NULL and calls through it at `0x001DED16`. The
+  toolkit answered with the *host's* free memory, and on macOS
+  `GlobalMemoryStatusEx` was a TODO that filled nothing in, so the figure was
+  uninitialised stack: #76's diagnostic hook in `kernel_bridge.c` changed
+  what was left there, and 1 boot in 10 became 10 in 10. Fixed in toolkit
+  `fix/mm-query-statistics` (`1d469e9`): the console reports half its 64 MB
+  free, always. Found by bisecting #71-#76 (`7bf9c18` 0/4 crashes, `4f70cc6`
+  0/4, `829bba4` 4/4; `829bba4` with only `kernel_bridge.c` reverted 0/4).
+- After the fix: 68 of 69 runs clean. Every level loaded its own `.ai`, no
+  unresolved indirect calls, no black frames, 58-60 fps with one copy
+  (Part IIIb dipped to 31-45 fps only with four running). The host's voices
+  never ran dry in any run; the only DirectSound discards are 64-byte buffers
+  in five Part II/III levels during those four-copy stalls.
+- **Open: Part Ib, Rooftops and Alleys 3 (`p1_l4-3`, L2.06).** About 88 s
+  into the scripted run, `sub_002379F0` (a range copy of 28-byte elements,
+  called from `sub_00238830`) is handed a garbage `first`/`last` pair and
+  reads off the end at `0x74000000`. Same registers every time
+  (`eax=0x73F24D09`). Not a regression: the `7bf9c18` build crashes there 3
+  of 3, the `9bf3ec2` one 2 of 4. The 18 Oct pass drove that level with
+  different input and did not reach it. Next step: `RECOMP_WATCH_WRITE` on
+  the container that holds the pair.
+
 **18 Oct 2026: relifted against toolkit `main` at `26c5215` (#69) and built
 on macOS (Apple Silicon, Vulkan on MoltenVK).** `src/main.c` regenerated from
 the current template; `CMakeLists.txt` and `scripts/build.py` made portable
@@ -159,9 +192,10 @@ own `RECOMP_RES_SCALE`.
 Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
-**Pin:** toolkit branch `fix/heap-alloc-lock` (`e02bcce`), which is toolkit
-`main` at `26c5215` (18 Oct 2026; the sound fixes above merged as #58) plus
-the allocator lock. Once that is merged, pin toolkit `main` again. Keep the
+**Pin:** toolkit branch `fix/mm-query-statistics` (`1d469e9`), which is
+toolkit `main` at `9bf3ec2` (21 Oct 2026; the allocator lock merged as #70)
+plus the free-memory fix above. Once that is merged, pin toolkit `main`
+again. Keep the
 pin on a commit of toolkit `main`: a feature branch's commits go away when it
 is squash-merged.
 

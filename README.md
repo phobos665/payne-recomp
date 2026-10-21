@@ -1,118 +1,104 @@
 # payne-recomp
 
-Max Payne (Xbox) as a native Windows program. It is built from **your own copy
-of the game**: the game's code is translated to C on your machine and compiled
-against the [xboxrecomp](https://github.com/phobos665/xboxrecomp) toolkit. No
-game code or data is in this repository.
+Max Payne (Xbox, PAL) as a native program for Windows and Apple Silicon Macs.
+You supply your own copy of the game. Its code is translated to C on your
+machine and compiled against the
+[xboxrecomp](https://github.com/phobos665/xboxrecomp) toolkit. This repository
+holds no game code or data.
 
-Status: every level loads and plays (checked on an Apple Silicon Mac; Windows
-was last checked on an older toolkit, through the first levels of each part).
-It has not been played through from start to finish yet; see [Status](#status).
+[Gameplay on macOS (video)](https://www.youtube.com/watch?v=cY0Gk71TAGI)
 
-Proof of gameplay on macOS (Testing):
+## Status
 
-https://www.youtube.com/watch?v=cY0Gk71TAGI
+**Playable.** Last checked on 21 Oct 2026 against xboxrecomp `main` (`9bf3ec2`)
+plus one fix, on an Apple Silicon Mac, with scripted input:
 
+| | |
+| --- | --- |
+| Start-up, intro movie, main menu | Works, with sound |
+| New Game: opening cutscene, graphic novel, narration | Works |
+| Levels | All 67 load through the game's level select. Each played for 48 s (walking, shooting, taking hits): 66 without a fault |
+| Frame rate | 60 fps |
+| Sound | No dropouts measured in any run (muted test runs; not yet re-checked by ear) |
+| Start-up | The occasional crash before the menu (about 1 start in 10) is fixed |
+| Widescreen | Optional (launcher switch); see [Widescreen](#widescreen) |
+
+Known problems:
+
+- Part Ib, *Rooftops and Alleys* 3 can crash about a minute in (2 of 4
+  scripted runs). It predates this toolkit update and is being looked into.
+
+Not checked yet: a level played to its end, loading a save, the credits.
+Windows was last checked on an older toolkit.
 
 ## What you need
 
-- Windows 10 or 11, 64-bit, **or** a Mac with Apple Silicon
-- On Windows: Visual Studio 2022 (or 2019) with the **Desktop development with
-  C++** workload
-- On macOS: the Xcode command line tools, Homebrew's `cmake` and `ninja`, and
-  the [Vulkan SDK](https://vulkan.lunarg.com/) (MoltenVK, the loader and DXC)
-- [CMake](https://cmake.org/download/) 3.20 or newer, on PATH
-- Python 3.10 or newer, with `capstone`: `py -3 -m pip install capstone`
-  (`python3 -m pip install capstone` on macOS)
-- Git
-- **Max Payne, PAL release**, extracted from your disc. The build checks
-  `default.xbe` and warns if it is a different version; see
-  [Other versions](#other-versions).
+- Windows 10/11 (64-bit) **or** a Mac with Apple Silicon
+- Windows: Visual Studio 2022 or 2019 with **Desktop development with C++**
+- macOS: Xcode command line tools, Homebrew `cmake` and `ninja`, and the
+  [Vulkan SDK](https://vulkan.lunarg.com/)
+- CMake 3.20+, Git, and Python 3.10+ with `capstone`
+  (`python3 -m pip install capstone`)
+- **Max Payne, PAL release**, extracted from your disc
 
 ## Build
 
-```bat
+```sh
 git clone --recursive https://github.com/phobos665/payne-recomp.git
 cd payne-recomp
 ```
 
-Copy the extracted disc into a folder called `game`, so that `game\default.xbe`
-exists (with `data\`, `english\` and the rest beside it). Then:
+Copy the extracted disc into a folder called `game`, so `game/default.xbe`
+exists with `data/`, `english/` and the rest beside it. Then:
 
-```bat
-py -3 ./scripts/build.py
+```sh
+python3 scripts/build.py      # Windows: py -3 scripts\build.py
 ```
 
-The first run translates the game (a few minutes) and then compiles it (longer).
-Later runs only recompile. When it finishes it prints where the program is:
+The first run translates the game (a few minutes), then compiles it. The
+program lands in `build/Release/`: `payne_recomp` (the game) and
+`payne_recomp_launcher` (settings, then the game). On Windows these are
+`.exe` files.
 
-```text
-build\Release\payne_recomp.exe             the game
-build\Release\payne_recomp_launcher.exe    settings window, then starts the game
-```
-
-On macOS run `python3 scripts/build.py`; it builds with Ninja into
-`build/Release/payne_recomp` and `build/Release/payne_recomp_launcher`.
-
-If you cloned without `--recursive`: `git submodule update --init`, then in
-`xboxrecomp`, `git submodule update --init third_party/SDL third_party/volk
+Cloned without `--recursive`? Run `git submodule update --init`, then in
+`xboxrecomp/`: `git submodule update --init third_party/SDL third_party/volk
 third_party/Vulkan-Headers third_party/VulkanMemoryAllocator
-third_party/libsamplerate third_party/miniupnp`. A fully recursive update
-works too, but it also fetches several gigabytes of emulator firmware that the
-build never uses.
+third_party/libsamplerate third_party/miniupnp`. Those are all the build needs.
 
 ## Play
 
-Run `build\Release\payne_recomp_launcher.exe` to choose settings and play, or
-`payne_recomp.exe` to start straight away. Either can be shortcut from anywhere.
-
-| Key | Does |
-| --- | --- |
-| F9 | show or hide the frame rate |
-| F10 | step the frame cap: adaptive, 60, 30, off |
-| F11 | save a screenshot and a capture of the frame, beside the executable, for bug reports |
+Start `payne_recomp_launcher` to pick settings, or `payne_recomp` to play
+straight away.
 
 An Xbox or XInput controller works as itself. On the keyboard: arrows = D-pad,
 Enter = Start, Backspace = Back, Z = A, X = B, A = X, S = Y, Q = White,
-W = Black, E = left trigger, R = right trigger. Rebind both in the launcher's
-Input tab.
+W = Black, E = left trigger, R = right trigger. Rebind in the launcher's Input
+tab.
 
-**Where things are kept:**
+| Key | Does |
+| --- | --- |
+| F9 | Show or hide the frame rate |
+| F10 | Step the frame cap: adaptive, 60, 30, off |
+| F11 | Save a screenshot and a frame capture beside the program, for bug reports |
 
-- Saves: `game\UDATA\54540003\`
-- Settings: `%APPDATA%\xboxrecomp\titles\54540003.conf` (the launcher writes it)
-- Controls: `%APPDATA%\xboxrecomp\input_bindings.json`
-- Log: `build\Release\payne_recomp.log`, when started without a console
+| What | Where |
+| --- | --- |
+| Saves | `game/UDATA/54540003/` |
+| Settings | `%APPDATA%\xboxrecomp\titles\54540003.conf`; on macOS `~/Library/Application Support/xboxrecomp/titles/54540003.conf` |
+| Log | `build/Release/payne_recomp.log`, when started without a terminal |
 
-## Status
+### Widescreen
 
-Checked so far, with scripted input:
-
-- start-up, the intro movie with its sound, and the main menu
-- New Game: the opening cutscene and graphic novel, with narration
-- all 67 levels, each loaded through the game's own level select and played
-  for a minute: HUD, walking, shooting and taking damage, at 60 fps
-- quick save, which writes a save and costs one short hitch
-
-Known problem: about one start in ten stops with a crash before the main
-menu (on macOS; not yet looked for on Windows). Starting again gets past it.
-
-Not checked yet: playing a level through to its end, loading a save, and
-sound by ear.
-
-## Other versions
-
-`config/seeds.json` and `config/xdk_symbols.json` are addresses inside the PAL
-`default.xbe`. An NTSC or other-revision disc will most likely need its own, and
-the build warns when the file differs. Please open an issue with the SHA-1 it
-printed.
+Turn on **Widescreen** in the launcher. The game has no 16:9 mode of its own,
+so the camera is widened instead (Hor+). Menus, loading screens and movies stay
+4:3 between bars. The HUD stays in the middle 4:3 area.
 
 ## Updating
 
-```bat
+```sh
 git pull
 git submodule update --recursive
-py -3 scripts\build.py --relift
+python3 scripts/build.py --relift
 ```
 
 `--relift` translates the game again. Do it whenever the toolkit or `config/`
@@ -120,13 +106,16 @@ changes.
 
 ## Problems
 
-- **"no default.xbe in ..."**: the disc contents are not in `game\`.
-- **Black window, nothing happens**: read `build\Release\payne_recomp.log`.
-- **A rendering bug in one place**: press F11 there and attach the `.bmp` and
-  `.d3dcap` it writes to an issue.
+- **"no default.xbe in ..."**: the disc contents are not in `game/`.
+- **Black window**: read the log (above).
+- **Something draws wrong in one place**: press F11 there and attach the
+  `.bmp` and `.d3dcap` it writes to an issue.
+- **A different disc**: `config/` holds addresses inside the PAL
+  `default.xbe` (SHA-1 `3250db85…`). The build warns if yours differs; other
+  versions need their own. Please open an issue with the SHA-1 it prints.
 
 ## Legal
 
-You need your own copy of Max Payne. Do not share `game\`, `src\recomp\` (it is
-translated game code) or anything under `build\`. This repository and
+You need your own copy of Max Payne. Do not share `game/`, `src/recomp/`
+(translated game code) or anything under `build/`. This repository and
 xboxrecomp contain no game code or assets.
