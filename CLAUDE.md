@@ -59,6 +59,45 @@ first pinned to toolkit `main` at `bcccf8c`. The toolkit history worth knowing:
 
 ## State
 
+**21 Oct 2026: relifted against toolkit `main` at `9bf3ec2`** (#70-#76: the
+heap lock merged, the XGRA audio work, Turok's D3D sync points, PES5's
+narrow multiply). No new seeds; `main.c` and `recomp_manual.c` unchanged.
+Regression with a scratch harness (one APFS-clone mirror per run, muted,
+background, `RECOMP_INPUT_SEQ`): boot and intro movie, New Game to the
+tutorial, and all 67 Preview Levels, 48 s of play each, 4 at a time.
+
+- **The start-up crash below is fixed, and it was never a host-thread race.**
+  On `9bf3ec2` it hit every level load. `sub_001DD9F0`, the particle
+  factory, creates nothing unless `sub_000F6F70` says more than 3.5 MB is
+  free (XAPI `GlobalMemoryStatus` at `0x002DA02C`, i.e. `MmQueryStatistics`).
+  The loader stores the NULL and calls through it at `0x001DED16`. The
+  toolkit answered with the *host's* free memory, and on macOS
+  `GlobalMemoryStatusEx` was a TODO that filled nothing in, so the figure was
+  uninitialised stack: #76's diagnostic hook in `kernel_bridge.c` changed
+  what was left there, and 1 boot in 10 became 10 in 10. Fixed in toolkit
+  #77 (`b634e49`): the console reports half its 64 MB
+  free, always. Found by bisecting #71-#76 (`7bf9c18` 0/4 crashes, `4f70cc6`
+  0/4, `829bba4` 4/4; `829bba4` with only `kernel_bridge.c` reverted 0/4).
+- After the free-memory fix: 68 of 69 runs clean. Every level loaded its own `.ai`, no
+  unresolved indirect calls, no black frames, 58-60 fps with one copy
+  (Part IIIb dipped to 31-45 fps only with four running). The host's voices
+  never ran dry in any run; the only DirectSound discards are 64-byte buffers
+  in five Part II/III levels during those four-copy stalls.
+- **Fixed: Part Ib, Rooftops and Alleys 3 (`p1_l4-3`, L2.06), a C++ throw
+  the toolkit could not catch.** About 88 s into the scripted run (2 of 4
+  runs; 3 of 3 on `7bf9c18`, so not a regression) a level object fails its
+  placement check and throws `X_LevelRuntimeObjectBase::Exception_Initial
+  Po...` from `sub_002387A0`. `sub_002437A0` and `sub_00243CC0` catch it
+  with `catch (...) { sub_002434F0(); throw; }`, and `sub_0003CD80`'s
+  `catch (...)` resumes at `0x0003CEFD`, which destroys a local and returns
+  false: the game gives up on that object. With no catch support the throw
+  returned into the next function, `sub_00238830`, which copied a garbage
+  range and faulted at `0x74000000`. Toolkit #77 (`b634e49`) catches C++ throws from the title's own EH tables
+  (`xboxrecomp/docs/technical/cpp-exceptions.md`, "Catching"); a caught
+  throw prints `[CXX] caught ...`. The level is 4 of 4 clean since, with
+  the exception caught up to 16 times a run, and a full pass on that build
+  is 69 of 69 clean.
+
 **18 Oct 2026: relifted against toolkit `main` at `26c5215` (#69) and built
 on macOS (Apple Silicon, Vulkan on MoltenVK).** `src/main.c` regenerated from
 the current template; `CMakeLists.txt` and `scripts/build.py` made portable
@@ -159,9 +198,9 @@ own `RECOMP_RES_SCALE`.
 Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
-**Pin:** toolkit branch `fix/heap-alloc-lock` (`e02bcce`), which is toolkit
-`main` at `26c5215` (18 Oct 2026; the sound fixes above merged as #58) plus
-the allocator lock. Once that is merged, pin toolkit `main` again. Keep the
+**Pin:** toolkit `main` at `b634e49` (21 Oct 2026), which is the free-memory
+fix and C++ catch support above merged as #77, on top of `9bf3ec2`. Its tree
+is identical to the branch commit `ffb0119` the passes above ran on. Keep the
 pin on a commit of toolkit `main`: a feature branch's commits go away when it
 is squash-merged.
 
