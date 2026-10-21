@@ -78,19 +78,26 @@ tutorial, and all 67 Preview Levels, 48 s of play each, 4 at a time.
   `fix/mm-query-statistics` (`1d469e9`): the console reports half its 64 MB
   free, always. Found by bisecting #71-#76 (`7bf9c18` 0/4 crashes, `4f70cc6`
   0/4, `829bba4` 4/4; `829bba4` with only `kernel_bridge.c` reverted 0/4).
-- After the fix: 68 of 69 runs clean. Every level loaded its own `.ai`, no
+- After the free-memory fix: 68 of 69 runs clean. Every level loaded its own `.ai`, no
   unresolved indirect calls, no black frames, 58-60 fps with one copy
   (Part IIIb dipped to 31-45 fps only with four running). The host's voices
   never ran dry in any run; the only DirectSound discards are 64-byte buffers
   in five Part II/III levels during those four-copy stalls.
-- **Open: Part Ib, Rooftops and Alleys 3 (`p1_l4-3`, L2.06).** About 88 s
-  into the scripted run, `sub_002379F0` (a range copy of 28-byte elements,
-  called from `sub_00238830`) is handed a garbage `first`/`last` pair and
-  reads off the end at `0x74000000`. Same registers every time
-  (`eax=0x73F24D09`). Not a regression: the `7bf9c18` build crashes there 3
-  of 3, the `9bf3ec2` one 2 of 4. The 18 Oct pass drove that level with
-  different input and did not reach it. Next step: `RECOMP_WATCH_WRITE` on
-  the container that holds the pair.
+- **Fixed: Part Ib, Rooftops and Alleys 3 (`p1_l4-3`, L2.06), a C++ throw
+  the toolkit could not catch.** About 88 s into the scripted run (2 of 4
+  runs; 3 of 3 on `7bf9c18`, so not a regression) a level object fails its
+  placement check and throws `X_LevelRuntimeObjectBase::Exception_Initial
+  Po...` from `sub_002387A0`. `sub_002437A0` and `sub_00243CC0` catch it
+  with `catch (...) { sub_002434F0(); throw; }`, and `sub_0003CD80`'s
+  `catch (...)` resumes at `0x0003CEFD`, which destroys a local and returns
+  false: the game gives up on that object. With no catch support the throw
+  returned into the next function, `sub_00238830`, which copied a garbage
+  range and faulted at `0x74000000`. Toolkit `feat/uplift-2026-10-21`
+  (`ffb0119`) catches C++ throws from the title's own EH tables
+  (`xboxrecomp/docs/technical/cpp-exceptions.md`, "Catching"); a caught
+  throw prints `[CXX] caught ...`. The level is 4 of 4 clean since, with
+  the exception caught up to 16 times a run, and a full pass on that build
+  is 69 of 69 clean.
 
 **18 Oct 2026: relifted against toolkit `main` at `26c5215` (#69) and built
 on macOS (Apple Silicon, Vulkan on MoltenVK).** `src/main.c` regenerated from
@@ -192,10 +199,10 @@ own `RECOMP_RES_SCALE`.
 Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
-**Pin:** toolkit branch `fix/mm-query-statistics` (`1d469e9`), which is
+**Pin:** toolkit branch `feat/uplift-2026-10-21` (`ffb0119`), which is
 toolkit `main` at `9bf3ec2` (21 Oct 2026; the allocator lock merged as #70)
-plus the free-memory fix above. Once that is merged, pin toolkit `main`
-again. Keep the
+plus the free-memory fix and C++ catch support above. Once that is merged,
+pin toolkit `main` again. Keep the
 pin on a commit of toolkit `main`: a feature branch's commits go away when it
 is squash-merged.
 

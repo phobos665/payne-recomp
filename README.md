@@ -11,24 +11,19 @@ holds no game code or data.
 ## Status
 
 **Playable.** Last checked on 21 Oct 2026 against xboxrecomp `main` (`9bf3ec2`)
-plus one fix, on an Apple Silicon Mac, with scripted input:
+plus two fixes, on an Apple Silicon Mac, with scripted input:
 
 | | |
 | --- | --- |
 | Start-up, intro movie, main menu | Works, with sound |
 | New Game: opening cutscene, graphic novel, narration | Works |
-| Levels | All 67 load through the game's level select. Each played for 48 s (walking, shooting, taking hits): 66 without a fault |
+| Levels | All 67 load through the game's level select. Each played for 48 s (walking, shooting, taking hits) without a fault |
 | Frame rate | 60 fps |
 | Sound | No dropouts measured in any run (muted test runs; not yet re-checked by ear) |
-| Start-up | The occasional crash before the menu (about 1 start in 10) is fixed |
+| Crashes fixed | The occasional one before the menu (about 1 start in 10), and the one in *Rooftops and Alleys* 3 |
 | Widescreen | Optional (launcher switch); see [Widescreen](#widescreen) |
 
-Known problems:
-
-- Part Ib, *Rooftops and Alleys* 3 can crash about a minute in (2 of 4
-  scripted runs). It predates this toolkit update and is being looked into.
-
-Not checked yet: a level played to its end, loading a save, the credits.
+No known crashes. Not checked yet: a level played to its end, loading a save, the credits.
 Windows was last checked on an older toolkit.
 
 ## What you need
