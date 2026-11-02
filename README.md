@@ -3,14 +3,14 @@
 Max Payne (Xbox, PAL) as a native program for Windows and Apple Silicon Macs.
 You supply your own copy of the game. Its code is translated to C on your
 machine and compiled against the
-[xboxrecomp](https://github.com/phobos665/xboxrecomp) toolkit. This repository
+[DirectXbox-Recomp](https://github.com/phobos665/DirectXbox-Recomp) toolkit. This repository
 holds no game code or data.
 
 [Gameplay on macOS (video)](https://www.youtube.com/watch?v=cY0Gk71TAGI)
 
 ## Status
 
-**Playable.** Last checked on 21 Oct 2026 against xboxrecomp `main` (`b634e49`),
+**Playable.** Last checked on 2 Nov 2026 against DirectXbox-Recomp `main` (`d7ee74e`),
 on an Apple Silicon Mac, with scripted input:
 
 | | |
