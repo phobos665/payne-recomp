@@ -198,8 +198,12 @@ own `RECOMP_RES_SCALE`.
 Not checked: a level played through to its end, the credits and attract
 movies, loading a save, sound by ear.
 
-**Pin:** toolkit `main` at `d7ee74e` (2 Nov 2026, #115), relifted from the
-disassembly stage. Checked with the same pass as above: New Game to the
+**Pin:** toolkit `main` at `a316171` (2 Nov 2026, #116). On `d7ee74e` (#115)
+the window stayed black on every Vulkan host, macOS included: the display
+resolve had no pipeline (`t10` undeclared, see #116); the counts below could
+not see that, so a run now also checks for `does not declare` in the log and
+looks at a frame. The lift is `d7ee74e`'s, relifted from the disassembly
+stage. Checked on `d7ee74e` with the same pass as above: New Game to the
 tutorial and all 67 Preview Levels, 48 s each, four at a time, each on its own
 APFS clone of the game folder. 68 of 68 runs clean: every level loaded its
 own `.ai`, with no faults, no unresolved indirect calls and no uncaught C++

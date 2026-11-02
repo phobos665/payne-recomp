@@ -10,7 +10,7 @@ holds no game code or data.
 
 ## Status
 
-**Playable.** Last checked on 2 Nov 2026 against DirectXbox-Recomp `main` (`d7ee74e`),
+**Playable.** Last checked on 2 Nov 2026 against DirectXbox-Recomp `main` (`a316171`),
 on an Apple Silicon Mac, with scripted input:
 
 | | |
